@@ -53,7 +53,8 @@ practise in my own words, and reflect on what I actually did.
   and saved summaries can be reviewed.
 - **Practical:** Every measurement or animation supports a rehearsal action.
 - **Private by default:** No account, cloud database, automatic upload, or
-  third-party AI in this MVP.
+  third-party AI in this MVP. Non-sensitive practice preferences stay local;
+  API credentials and camera consent are never saved as preferences.
 - **Accessible and calm:** Clear language, usable interaction targets, and
   restrained motion support different desktop sizes and comfort levels.
 

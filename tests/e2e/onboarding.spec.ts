@@ -104,6 +104,54 @@ test("camera-free practice can be completed and its saved reflection reopened", 
   await expect(page.getByText("No valid compatible baseline and recovery pair was saved.")).toHaveCount(3);
 });
 
+test("non-sensitive practice preferences persist locally across reloads", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Prepare for a moment" }).click();
+  await page.getByRole("button", { name: /Presentation/ }).click();
+  await page.getByLabel("Practice duration").selectOption("7");
+  await page.getByRole("button", { name: "Home" }).click();
+  await page.reload();
+
+  await page.getByRole("button", { name: "Prepare for a moment" }).click();
+  await expect(page.getByRole("button", { name: /Presentation/ })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.getByLabel("Practice duration")).toHaveValue("7");
+  await page.getByRole("button", { name: /Continue to camera consent/ }).click();
+  await page.getByRole("button", { name: "Continue without camera" }).click();
+  const guidedRate = page.locator('input[type="range"]');
+  await guidedRate.fill("13");
+  await page.getByRole("button", { name: "Home" }).click();
+  await page.reload();
+
+  await page.getByRole("button", { name: "Prepare for a moment" }).click();
+  await page.getByRole("button", { name: /Continue to camera consent/ }).click();
+  await page.getByRole("button", { name: "Continue without camera" }).click();
+  await expect(page.locator('input[type="range"]')).toHaveValue("13");
+  const storedKeys = await page.evaluate(() => Object.keys(localStorage));
+  expect(storedKeys).toEqual(["poise-preferences"]);
+});
+
+test("invalid saved preferences are surfaced and can be reset", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("poise-preferences", "{invalid");
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Privacy & data" }).click();
+  await expect(page.getByText(/Could not load local practice preferences/)).toBeVisible();
+  await page.getByRole("button", { name: "Reset practice preferences" }).click();
+  await expect(page.getByText(/Could not load local practice preferences/)).toHaveCount(0);
+  await page.getByRole("button", { name: "New session" }).click();
+  await expect(page.getByRole("button", { name: /Interview/ })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.getByLabel("Practice duration")).toHaveValue("4");
+});
+
 test("local SQLite summaries survive reload and can be deleted", async ({
   page,
 }) => {

@@ -89,6 +89,11 @@ practice suggestion, plus whether camera sensing was used. Older summaries
 without that optional marker remain reviewable. Raw frames, raw landmark history, API keys, and
 high-frequency live samples are not persisted.
 
+Non-sensitive preferences (selected scenario, practice duration, and guided
+breathing target) are stored in the app's local origin storage. They exclude
+credentials and camera-consent state. Preference data is validated on read and
+write; invalid saved preferences are surfaced and can be reset in Settings.
+
 Database IPC checks the trusted sender and limits the serialized payload to
 20 MiB. The preload exposes only read, write, and delete operations for the
 session database. The user can delete an individual saved session or delete

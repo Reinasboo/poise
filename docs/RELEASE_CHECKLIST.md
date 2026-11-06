@@ -13,6 +13,8 @@ real SmartSpectra account/device, public sharing, or a competition account.
 - [x] Unit tests cover signal freshness; browser tests cover camera-free
       practice, saved reflection review, reduced motion, and local
       persistence/deletion.
+- [x] Non-sensitive scenario, duration, and guided-pace preferences persist
+      locally and invalid saved values can be reset.
 - [x] `npm audit` reports no known vulnerabilities.
 - [x] Packaged Electron startup and storage IPC read/write/delete smoke check.
 - [x] Product, architecture, integration, privacy, consent, and testing docs.

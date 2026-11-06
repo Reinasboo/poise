@@ -31,6 +31,12 @@ import {
   sessionStore,
   type StoredSession,
 } from "./services/sessionStore";
+import {
+  defaultPreferences,
+  readPreferences,
+  resetPreferences,
+  writePreferences,
+} from "./services/preferencesStore";
 
 type Screen =
   | "home"
@@ -179,11 +185,11 @@ function App() {
   const [phase, setPhase] = useState<SessionPhase>("IDLE");
   const phaseRef = useRef<SessionPhase>("IDLE");
   const sensingAttemptRef = useRef(0);
-  const [kind, setKind] = useState<SessionKind>("interview");
+  const [kind, setKind] = useState<SessionKind>(defaultPreferences.kind);
   const [session, setSession] = useState<SessionDraft | null>(null);
   const [objective, setObjective] = useState("");
   const [topic, setTopic] = useState("");
-  const [durationMinutes, setDurationMinutes] = useState(4);
+  const [durationMinutes, setDurationMinutes] = useState(defaultPreferences.durationMinutes);
   const [apiKey, setApiKey] = useState("");
   const apiKeyRef = useRef(apiKey);
   apiKeyRef.current = apiKey;
@@ -192,7 +198,9 @@ function App() {
   const [sessionUsesCamera, setSessionUsesCamera] = useState(false);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const [warmupMode, setWarmupMode] = useState<WarmupMode>("observe");
-  const [guidedRate, setGuidedRate] = useState(10);
+  const [guidedRate, setGuidedRate] = useState(defaultPreferences.guidedRate);
+  const [preferencesReady, setPreferencesReady] = useState(false);
+  const [preferencesWritable, setPreferencesWritable] = useState(true);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [latestSamples, setLatestSamples] = useState<SamplesByMetric>({});
   const [baseline, setBaseline] = useState<SamplesByMetric>({});
@@ -217,6 +225,7 @@ function App() {
   const [diagnostics, setDiagnostics] = useState<DiagnosticEntry[]>([]);
   const [sdkError, setSdkError] = useState("");
   const [storageError, setStorageError] = useState("");
+  const [preferencesError, setPreferencesError] = useState("");
   const [saveError, setSaveError] = useState("");
   const [now, setNow] = useState(Date.now());
   const [phaseStartedAt, setPhaseStartedAt] = useState(0);
@@ -280,6 +289,31 @@ function App() {
   }, [loadHistory]);
 
   useEffect(() => {
+    try {
+      const saved = readPreferences();
+      setKind(saved.kind);
+      setDurationMinutes(saved.durationMinutes);
+      setGuidedRate(saved.guidedRate);
+      setPreferencesWritable(true);
+    } catch (error) {
+      setPreferencesWritable(false);
+      setPreferencesError(`Could not load local practice preferences: ${errorMessage(error)}`);
+    } finally {
+      setPreferencesReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!preferencesReady || !preferencesWritable) return;
+    try {
+      writePreferences({ kind, durationMinutes, guidedRate });
+      setPreferencesError("");
+    } catch (error) {
+      setPreferencesError(`Could not save local practice preferences: ${errorMessage(error)}`);
+    }
+  }, [durationMinutes, guidedRate, kind, preferencesReady, preferencesWritable]);
+
+  useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1_000);
     return () => window.clearInterval(timer);
   }, []);
@@ -338,10 +372,8 @@ function App() {
       setSessionPhase("IDLE");
     }
     resetSessionState();
-    setKind("interview");
     setObjective("");
     setTopic("");
-    setDurationMinutes(4);
     setApiKey("");
     setConsentAccepted(false);
     setSaveLocally(false);
@@ -802,6 +834,19 @@ function App() {
       setStorageError("");
     } catch (error) {
       setStorageError(`Could not delete all local Poise data: ${errorMessage(error)}`);
+    }
+  }, []);
+
+  const restoreDefaultPreferences = useCallback(() => {
+    try {
+      resetPreferences();
+      setKind(defaultPreferences.kind);
+      setDurationMinutes(defaultPreferences.durationMinutes);
+      setGuidedRate(defaultPreferences.guidedRate);
+      setPreferencesWritable(true);
+      setPreferencesError("");
+    } catch (error) {
+      setPreferencesError(`Could not reset local practice preferences: ${errorMessage(error)}`);
     }
   }, []);
 
@@ -1628,6 +1673,14 @@ function App() {
         </p>
         <div className="summary-grid">
           <article className="glass-card">
+            <h3>Practice preferences</h3>
+            <p className="muted">
+              Your selected practice type, duration, and guided breathing target
+              are saved locally on this device. They do not include your API key
+              or camera consent.
+            </p>
+          </article>
+          <article className="glass-card">
             <div className="metric-label">Practice completed</div>
             <div className="metric-value">{formatDuration(practiceDurationMs)}</div>
             <div className="metric-unit">
@@ -2112,7 +2165,14 @@ function App() {
         </article>
       </div>
       {storageError && <div className="notice error" style={{ marginTop: 16 }}>{storageError}</div>}
+      {preferencesError && <div className="notice error" style={{ marginTop: 16 }}>{preferencesError}</div>}
       <div className="button-row">
+        <button
+          className="button-secondary"
+          onClick={restoreDefaultPreferences}
+        >
+          Reset practice preferences
+        </button>
         <button className="button-secondary" onClick={() => setScreen("history")}>
           Review saved sessions
         </button>
@@ -2132,9 +2192,10 @@ function App() {
       <div className="eyebrow">About Poise</div>
       <h1 className="screen-title">Show up as yourself. At your best.</h1>
       <p className="screen-intro">
-        Poise is a camera-powered human-sensing rehearsal companion for life’s
-        important moments. It connects a personal check-in, an adaptive warm-up,
-        practical speaking rehearsal, and a grounded reflection.
+        Poise is a rehearsal companion for life’s important moments, with
+        optional camera-based human sensing. It connects a personal check-in,
+        an adaptive warm-up, practical speaking rehearsal, and a grounded
+        reflection.
       </p>
       <div className="glass-card">
         <h3>Built with Presage SmartSpectra</h3>

@@ -12,6 +12,7 @@ information, not legal advice.
 | Optional session summary | History and personal practice progress | Saved locally only when the user opts in |
 | SmartSpectra API key | Authenticate the SDK session | Held in renderer memory for the active session; not logged or persisted by Poise |
 | Session objective and selected scenario | Personalize and describe the practice | Included in the saved summary only if the user opts in |
+| Practice preferences | Remember selected scenario, duration, and guided breathing target | Stored locally in app origin storage; no credentials or camera-consent state |
 
 An opted-in summary can include the session type, date, practice duration,
 objective, completion, valid baseline/recovery sample values and available

@@ -33,6 +33,8 @@ simulated measurements.
   talking activity and intervals, not a transcript.
 - Review a grounded reflection and, if opted in, reopen it from local session
   history.
+- Keep non-sensitive scenario, duration, and guided-pace preferences locally
+  between app runs.
 
 ## Requirements
 
