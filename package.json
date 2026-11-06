@@ -1,0 +1,93 @@
+{
+  "name": "poise",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A human-sensing rehearsal companion for important moments.",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "npm run build:preload && concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron .\"",
+    "dev:web": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build && npm run build:preload",
+    "build:preload": "esbuild electron/preload.cjs --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs",
+    "start": "electron .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "dist:win": "npm run build && electron-builder --win --x64",
+    "dist:dir": "npm run build && electron-builder --dir --win --x64"
+  },
+  "dependencies": {
+    "@smartspectra/node-sdk": "3.4.0",
+    "framer-motion": "^12.23.24",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "recharts": "^3.4.1",
+    "sql.js": "^1.13.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@tailwindcss/postcss": "^4.1.17",
+    "@types/node": "^24.10.0",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@types/sql.js": "^1.4.9",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.22",
+    "concurrently": "^9.2.1",
+    "electron": "43.8.7",
+    "electron-builder": "26.18.1",
+    "esbuild": "^0.28.2",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.17",
+    "typescript": "~5.9.3",
+    "vite": "^7.2.2",
+    "vitest": "^4.0.8",
+    "wait-on": "^9.0.3"
+  },
+  "build": {
+    "appId": "com.poise.desktop",
+    "productName": "Poise",
+    "asar": true,
+    "files": [
+      "electron/**",
+      "dist/**",
+      "node_modules/**",
+      "!node_modules/@smartspectra/node-sdk-*/**",
+      "!node_modules/@smartspectra/node-sdk/scripts/**",
+      "!node_modules/@smartspectra/node-sdk/test/**",
+      "!node_modules/@smartspectra/node-sdk/samples/**",
+      "!node_modules/@smartspectra/node-sdk/prebuilds/**"
+    ],
+    "win": {
+      "target": "nsis",
+      "extraResources": [
+        {
+          "from": "node_modules/@smartspectra/node-sdk-win32-${arch}/",
+          "to": "smartspectra"
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "overrides": {
+    "js-yaml": "4.3.2",
+    "fast-uri": "3.1.9",
+    "@xmldom/xmldom": "0.8.15",
+    "minimatch@^10.2.5": "11.0.5",
+    "app-builder-lib": {
+      "@electron/universal": "3.0.6"
+    },
+    "@electron/asar@^4.0.0": {
+      "glob": "14.0.2"
+    }
+  },
+  "allowScripts": {
+    "koffi@2.16.3": true,
+    "esbuild@0.28.2": true,
+    "electron-winstaller@5.4.0": true
+  }
+}

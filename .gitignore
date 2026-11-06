@@ -1,0 +1,17 @@
+node_modules/
+dist/
+release/
+coverage/
+playwright-report/
+test-results/
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-journal
+*.db
+*.db-journal
+
+# Source brief and locally installed third-party skill are not redistributed.
+/Poise - Google Docs.pdf
+/.agents/skills/using-smartspectra/SKILL.md
