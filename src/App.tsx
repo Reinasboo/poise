@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   CartesianGrid,
   Line,
@@ -189,6 +189,8 @@ function App() {
   apiKeyRef.current = apiKey;
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [saveLocally, setSaveLocally] = useState(false);
+  const [sessionUsesCamera, setSessionUsesCamera] = useState(false);
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const [warmupMode, setWarmupMode] = useState<WarmupMode>("observe");
   const [guidedRate, setGuidedRate] = useState(10);
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -236,14 +238,16 @@ function App() {
   const [isStopping, setIsStopping] = useState(false);
   const [warmupStartedAt, setWarmupStartedAt] = useState(0);
   const [warmupElapsedMs, setWarmupElapsedMs] = useState(0);
+  const prefersReducedMotion = useReducedMotion();
 
   const isSensing =
-    stream !== null ||
-    phase === "CAMERA_SETUP" ||
-    phase === "CHECK_IN" ||
-    phase === "WARMUP" ||
-    phase === "REHEARSAL" ||
-    phase === "RECOVERY";
+    sessionUsesCamera &&
+    (stream !== null ||
+      phase === "CAMERA_SETUP" ||
+      phase === "CHECK_IN" ||
+      phase === "WARMUP" ||
+      phase === "REHEARSAL" ||
+      phase === "RECOVERY");
 
   const setSessionPhase = useCallback((next: SessionPhase) => {
     const current = phaseRef.current;
@@ -341,6 +345,8 @@ function App() {
     setApiKey("");
     setConsentAccepted(false);
     setSaveLocally(false);
+    setSessionUsesCamera(false);
+    setSelectedHistoryId(null);
     setScreen("setup");
   }, [resetSessionState, setSessionPhase]);
 
@@ -356,6 +362,14 @@ function App() {
     setSessionPhase("CONSENT");
     setScreen("session");
   }, [durationMinutes, kind, objective, setSessionPhase]);
+
+  const continueWithoutCamera = useCallback(() => {
+    setSessionUsesCamera(false);
+    setApiKey("");
+    setWarmupMode("guided");
+    setWarmupStartedAt(Date.now());
+    setSessionPhase("WARMUP");
+  }, [setSessionPhase]);
 
   const handleMetrics = useCallback((metrics: LiveMetrics) => {
     const currentPhase = phaseRef.current;
@@ -458,6 +472,7 @@ function App() {
     }
     const attempt = ++sensingAttemptRef.current;
     setIsBusy(true);
+    setSessionUsesCamera(true);
     setSdkError("");
     setDiagnostics([]);
     lastMetricsDiagnosticAtRef.current = 0;
@@ -471,6 +486,7 @@ function App() {
           if (attempt !== sensingAttemptRef.current) return;
           setStream(null);
           setApiKey("");
+          setSessionUsesCamera(false);
           setProcessingStatus("Stopped");
           recordDiagnostic("cleanup", "SDK stop and destroy completed.");
         },
@@ -566,6 +582,7 @@ function App() {
       setSdkError(safeMessage);
       recordDiagnostic("start error", safeMessage);
       setApiKey("");
+      setSessionUsesCamera(false);
       try {
         await smartSpectraClient.stop();
         setStream(null);
@@ -594,6 +611,7 @@ function App() {
       recordDiagnostic("stop", "SDK stop and destroy completed.");
       setStream(null);
       setApiKey("");
+      setSessionUsesCamera(false);
       setProcessingStatus("Stopped");
       setIsTalking(false);
       talkingStateRef.current = false;
@@ -669,12 +687,17 @@ function App() {
   }, [durationMinutes, enterRecovery, now, phase]);
 
   const finishRecovery = useCallback(async () => {
+    if (!sessionUsesCamera) {
+      setSessionPhase("REFLECTION");
+      return;
+    }
     setIsBusy(true);
     try {
       await smartSpectraClient.stop();
       recordDiagnostic("stop", "Recovery ended; SDK stop and destroy completed.");
       setStream(null);
       setApiKey("");
+      setSessionUsesCamera(false);
       setProcessingStatus("Stopped");
       setSessionPhase("REFLECTION");
     } catch (error) {
@@ -684,7 +707,7 @@ function App() {
     } finally {
       setIsBusy(false);
     }
-  }, [apiKey, recordDiagnostic, setSessionPhase]);
+  }, [apiKey, recordDiagnostic, sessionUsesCamera, setSessionPhase]);
 
   const completeSession = useCallback(async () => {
     if (!session) return;
@@ -710,6 +733,7 @@ function App() {
         recovery,
         talkingIntervals,
         blinkCount,
+        cameraSensingUsed: sessionUsesCamera,
       },
       speakingIntervals: intervalCount,
       pauses: pauseCount,
@@ -718,11 +742,14 @@ function App() {
     setCompletedSummary(summary);
     setSaveError("");
     try {
-      await smartSpectraClient.stop();
-      recordDiagnostic("stop", "Session finished; SDK stop and destroy completed.");
-      setStream(null);
-      setApiKey("");
-      setProcessingStatus("Stopped");
+      if (sessionUsesCamera) {
+        await smartSpectraClient.stop();
+        recordDiagnostic("stop", "Session finished; SDK stop and destroy completed.");
+        setStream(null);
+        setApiKey("");
+        setSessionUsesCamera(false);
+        setProcessingStatus("Stopped");
+      }
       if (saveLocally) {
         await sessionStore.save(summary);
         await loadHistory();
@@ -747,6 +774,7 @@ function App() {
     recovery,
     saveLocally,
     session,
+    sessionUsesCamera,
     setSessionPhase,
     talkingIntervals,
   ]);
@@ -755,6 +783,7 @@ function App() {
     if (!window.confirm("Delete this saved session from this device?")) return;
     try {
       await sessionStore.delete(id);
+      setSelectedHistoryId((selectedId) => selectedId === id ? null : selectedId);
       await loadHistory();
     } catch (error) {
       setStorageError(`Could not delete the saved session: ${errorMessage(error)}`);
@@ -769,6 +798,7 @@ function App() {
     try {
       await sessionStore.deleteAll();
       setHistory([]);
+      setSelectedHistoryId(null);
       setStorageError("");
     } catch (error) {
       setStorageError(`Could not delete all local Poise data: ${errorMessage(error)}`);
@@ -1004,8 +1034,8 @@ function App() {
       <div className="eyebrow">Before we begin</div>
       <h1 className="screen-title">You’re in control.</h1>
       <p className="screen-intro">
-        Poise needs your camera for live SmartSpectra sensing. Sensing starts
-        only after you choose to continue.
+        Choose camera sensing with SmartSpectra, or continue with a camera-free
+        practice. Camera use begins only after explicit consent.
       </p>
       <div className="glass-card">
         <div className="consent-list">
@@ -1027,9 +1057,10 @@ function App() {
           <div className="consent-line">
             <Icon name="shield" />
             <span>
-              SmartSpectra must authenticate your API key. Poise disables
-              optional SDK telemetry, but this does not disable authentication
-              or other required Presage service communication.
+              Camera sensing requires SmartSpectra to authenticate your API
+              key. Poise disables optional SDK telemetry, but this does not
+              disable authentication or other required Presage service
+              communication.
             </span>
           </div>
           <div className="notice">
@@ -1072,8 +1103,8 @@ function App() {
               value={apiKey}
             />
             <span className="muted">
-              Kept in memory for this session only. Never committed or stored
-              by Poise.
+              Required only if you choose camera sensing. Kept in memory for
+              the sensing session; never committed or stored by Poise.
             </span>
           </label>
           {sdkError && <div className="notice error">{sdkError}</div>}
@@ -1086,6 +1117,12 @@ function App() {
               }}
             >
               Back
+            </button>
+            <button
+              className="button-secondary"
+              onClick={continueWithoutCamera}
+            >
+              Continue without camera
             </button>
             <button
               className="button-primary"
@@ -1246,7 +1283,7 @@ function App() {
     const breathingPeriodMs = target ? 60_000 / target : 6_000;
     const progress = (now % breathingPeriodMs) / breathingPeriodMs;
     const hasBreathingPace = warmupMode === "guided" || measuredBreathing !== undefined;
-    const scale = hasBreathingPace
+    const scale = !prefersReducedMotion && hasBreathingPace
       ? 0.88 + (Math.sin(progress * Math.PI * 2) + 1) * 0.075
       : 1;
     const waveformRange = waveform.length > 1
@@ -1266,6 +1303,12 @@ function App() {
           Take a comfortable moment. There is no perfect pace to reach; stop or
           change modes whenever you like.
         </p>
+        {!sessionUsesCamera && (
+          <div className="notice info">
+            Camera sensing is off. No live measurements will be collected or
+            used in this practice.
+          </div>
+        )}
         <div className="glass-card warmup">
           <div className="breath-stage">
             <div
@@ -1278,7 +1321,12 @@ function App() {
               }
               className={`breath-orb ${warmupMode === "observe" && !measuredBreathing ? "waiting" : ""}`}
               role="img"
-              style={{ transform: `scale(${scale})`, transitionDuration: `${Math.min(1.2, breathingPeriodMs / 20_000)}s` }}
+              style={{
+                transform: `scale(${scale})`,
+                transitionDuration: prefersReducedMotion
+                  ? "0s"
+                  : `${Math.min(1.2, breathingPeriodMs / 20_000)}s`,
+              }}
             />
             <div className="breath-center-label">
               {warmupMode === "observe"
@@ -1357,13 +1405,15 @@ function App() {
             </p>
             {sdkError && <div className="notice error">{sdkError}</div>}
             <div className="button-row">
-              <button
-                className="button-secondary"
-                disabled={isStopping}
-                onClick={() => void stopSensing()}
-              >
-                Stop sensing
-              </button>
+              {sessionUsesCamera && (
+                <button
+                  className="button-secondary"
+                  disabled={isStopping}
+                  onClick={() => void stopSensing()}
+                >
+                  Stop sensing
+                </button>
+              )}
               <button className="button-primary" onClick={enterRehearsal}>
                 Enter the Stage <Icon name="arrow" />
               </button>
@@ -1411,13 +1461,23 @@ function App() {
           )}
         </div>
         <div className="stage-layout">
-          <div className="camera-frame">
-            <video autoPlay muted playsInline ref={attachVideo} />
-            <div className="camera-status">
-              <span className={`status-dot ${stream ? "live" : ""}`} />
-              {stream ? "Camera active" : "Camera unavailable"} · {faceVisible === true ? "face visible" : "face status unavailable"} · talking {isTalking ? "detected" : "not detected"}
+          {sessionUsesCamera ? (
+            <div className="camera-frame">
+              <video autoPlay muted playsInline ref={attachVideo} />
+              <div className="camera-status">
+                <span className={`status-dot ${stream ? "live" : ""}`} />
+                {stream ? "Camera active" : "Camera unavailable"} · {faceVisible === true ? "face visible" : "face status unavailable"} · talking {isTalking ? "detected" : "not detected"}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="glass-card">
+              <h3>Camera off</h3>
+              <p className="muted">
+                This rehearsal uses no camera, live measurements, or SmartSpectra
+                sensing. Your practice activity stays on this screen.
+              </p>
+            </div>
+          )}
           <div className="glass-card">
             <div className="metric-label">Time remaining</div>
             <div className="big-timer">{formatDuration(timeLeft)}</div>
@@ -1456,13 +1516,15 @@ function App() {
             })}
           </div>
           <div className="button-row">
-            <button
-              className="button-secondary"
-              disabled={isStopping}
-              onClick={() => void stopSensing()}
-            >
-              Stop sensing
-            </button>
+            {sessionUsesCamera && (
+              <button
+                className="button-secondary"
+                disabled={isStopping}
+                onClick={() => void stopSensing()}
+              >
+                Stop sensing
+              </button>
+            )}
             <button className="button-primary" onClick={enterRecovery}>
               Finish rehearsal <Icon name="arrow" />
             </button>
@@ -1472,7 +1534,26 @@ function App() {
     );
   };
 
-  const renderRecovery = () => (
+  const renderRecovery = () => !sessionUsesCamera ? (
+    <>
+      <div className="eyebrow">Recovery · {formatDuration(elapsedSincePhaseStart)}</div>
+      <h1 className="screen-title">Take a moment to reflect.</h1>
+      <p className="screen-intro">
+        Camera sensing was off, so there are no post-practice measurements to
+        compare. You can still review the time you practised and your observable
+        speaking activity.
+      </p>
+      <div className="notice info">
+        No camera data or SmartSpectra measurements were collected for this
+        session.
+      </div>
+      <div className="button-row">
+        <button className="button-primary" onClick={() => void finishRecovery()}>
+          Continue to reflection <Icon name="arrow" />
+        </button>
+      </div>
+    </>
+  ) : (
     <>
       <div className="eyebrow">Recovery · {formatDuration(elapsedSincePhaseStart)}</div>
       <h1 className="screen-title">Take a quiet moment.</h1>
@@ -1679,7 +1760,7 @@ function App() {
           </>
         )}
       </div>
-      {phase !== "CONSENT" && (
+      {sessionUsesCamera && phase !== "CONSENT" && (
         <details className="diagnostic-panel">
           <summary>SmartSpectra diagnostics · temporary, in memory only</summary>
           <p className="muted">
@@ -1705,11 +1786,11 @@ function App() {
       )}
       <AnimatePresence mode="wait">
         <motion.section
-          animate={{ opacity: 1, y: 0 }}
-          initial={{ opacity: 0, y: 8 }}
+          animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
           key={phase}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.22 }}
+          exit={prefersReducedMotion ? undefined : { opacity: 0, y: -8 }}
+          transition={{ duration: prefersReducedMotion ? 0 : 0.22 }}
         >
           {phase === "CONSENT" && renderConsent()}
           {phase === "CAMERA_SETUP" && renderCameraSetup()}
@@ -1748,7 +1829,135 @@ function App() {
     </div>
   );
 
-  const renderHistory = () => (
+  const renderHistory = () => {
+    const selectedSession = history.find((item) => item.id === selectedHistoryId);
+    if (selectedSession) {
+      const renderSavedMetric = (
+        label: string,
+        metric: MetricName,
+        unit: string,
+      ) => {
+        const baselineSample = selectedSession.details.baseline[metric];
+        const recoverySample = selectedSession.details.recovery[metric];
+        const comparison = compareMeasurements(baselineSample, recoverySample);
+        const renderSavedReading = (
+          caption: string,
+          sample: SignalSample | undefined,
+        ) => (
+          <div className="saved-reading">
+            <strong>{caption}</strong>
+            <span>
+              {sample
+                ? `${sample.value.toFixed(metric === "hrv" ? 1 : 0)} ${unit}`
+                : "Not available"}
+            </span>
+            {sample && (
+              <small>
+                {sample.stable === true ? "Stable" : "Stability unavailable"} · {sample.confidence === undefined
+                  ? "confidence unavailable"
+                  : `${sample.confidence.toFixed(0)}% confidence`}
+              </small>
+            )}
+            {sample && (
+              <small>
+                Sampled {new Date(sample.timestampUs / 1_000).toLocaleString()}
+              </small>
+            )}
+          </div>
+        );
+        return (
+          <article className="glass-card" key={metric}>
+            <h3>{label}</h3>
+            {renderSavedReading("Baseline", baselineSample)}
+            {renderSavedReading("Recovery", recoverySample)}
+            <p className="muted">
+              {comparison
+                ? `Valid matching comparison: ${comparison.baseline.toFixed(metric === "hrv" ? 1 : 0)} → ${comparison.recovery.toFixed(metric === "hrv" ? 1 : 0)} ${unit}`
+                : "No valid compatible baseline and recovery pair was saved."}
+            </p>
+          </article>
+        );
+      };
+
+      return (
+        <div className="page-content">
+          <div className="eyebrow">Saved practice · {scenarioInfo[selectedSession.kind].label}</div>
+          <h1 className="screen-title">A closer look at your session.</h1>
+          <p className="screen-intro">
+            {new Date(selectedSession.createdAt).toLocaleString()} ·{" "}
+            {formatDuration(selectedSession.durationMs)} ·{" "}
+            {selectedSession.practiceCompleted ? "Practice completed" : "Practice not completed"}
+          </p>
+          {selectedSession.objective && (
+            <div className="glass-card">
+              <div className="metric-label">Your objective</div>
+              <p>{selectedSession.objective}</p>
+            </div>
+          )}
+          {selectedSession.details.cameraSensingUsed === false && (
+            <div className="notice info">
+              Camera sensing was off; this session has no live measurements.
+            </div>
+          )}
+          {selectedSession.details.cameraSensingUsed === true && (
+            <div className="notice info">
+              Camera sensing was enabled. Only valid measurements received
+              during this session are shown below.
+            </div>
+          )}
+          <div className="summary-grid">
+            {renderSavedMetric("Pulse", "pulse", "bpm")}
+            {renderSavedMetric("Breathing", "breathing", "breaths/min")}
+            {renderSavedMetric("HRV · RMSSD", "hrv", "ms")}
+            <article className="glass-card">
+              <h3>Practice observations</h3>
+              <p>{selectedSession.speakingIntervals} speaking intervals</p>
+              <p>{selectedSession.pauses} candidate pauses</p>
+              <p>{selectedSession.details.blinkCount} blink observations</p>
+            </article>
+            <article className="glass-card">
+              <div className="eyebrow">A next practice idea</div>
+              <p>{selectedSession.suggestion}</p>
+              <p className="muted">
+                Based on observable practice activity or your selected goal.
+              </p>
+            </article>
+          </div>
+          <div className="glass-card" style={{ marginTop: 16 }}>
+            <div className="metric-label">Speaking activity timeline</div>
+            <div aria-label="Saved speaking activity timeline" className="timeline">
+              {selectedSession.details.talkingIntervals.length === 0
+                ? <span className="muted">No stable talking activity was saved.</span>
+                : selectedSession.details.talkingIntervals.map((interval, index) => (
+                  <span
+                    className="timeline-mark speaking"
+                    key={`${interval.startedAt}-${index}`}
+                    style={{
+                      flex: Math.max(1, interval.endedAt - interval.startedAt),
+                    }}
+                  />
+                ))}
+            </div>
+          </div>
+          <div className="button-row">
+            <button
+              className="button-secondary"
+              onClick={() => setSelectedHistoryId(null)}
+            >
+              Back to sessions
+            </button>
+            <button
+              className="button-secondary"
+              onClick={() => void deleteSession(selectedSession.id)}
+            >
+              Delete this session
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
     <div className="page-content">
       <div className="eyebrow">My journey</div>
       <h1 className="screen-title">Your practice history.</h1>
@@ -1778,6 +1987,12 @@ function App() {
                 </div>
               </div>
               <button
+                className="button-quiet"
+                onClick={() => setSelectedHistoryId(item.id)}
+              >
+                Review
+              </button>
+              <button
                 aria-label={`Delete ${scenarioInfo[item.kind].label} session from ${new Date(item.createdAt).toLocaleDateString()}`}
                 className="button-quiet"
                 onClick={() => void deleteSession(item.id)}
@@ -1794,7 +2009,8 @@ function App() {
         </button>
       </div>
     </div>
-  );
+    );
+  };
 
   const renderProgress = () => (
     <div className="page-content">
@@ -2044,7 +2260,7 @@ function App() {
             animate={{ opacity: 1 }}
             initial={{ opacity: 0 }}
             key={screen}
-            transition={{ duration: 0.18 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.18 }}
           >
             {content}
           </motion.div>

@@ -40,13 +40,16 @@ The renderer content security policy limits sources to the app and permits
 
 The engine in `src/engine/session.ts` defines allowed transitions:
 
-`IDLE → CONSENT → CAMERA_SETUP → CHECK_IN → WARMUP → REHEARSAL → RECOVERY → REFLECTION → COMPLETED`
+`IDLE → CONSENT → (CAMERA_SETUP → CHECK_IN | WARMUP) → WARMUP → REHEARSAL → RECOVERY → REFLECTION → COMPLETED`
 
-Consent/setup errors enter `ERROR`; stop/cancel returns to `IDLE`. The UI
-coordinates phase changes and calls the SDK stop/destroy lifecycle on stop,
-completion, and window unload. Preparation, rehearsal, and recovery are distinct
-sensing contexts. Breathing samples are accepted only with a recent stable
-not-talking observation.
+The user may explicitly consent to camera sensing or choose a camera-free path
+from consent directly to guided warm-up. Consent/setup errors enter `ERROR`;
+stop/cancel returns to `IDLE`. The UI coordinates phase changes and calls the
+SDK stop/destroy lifecycle on stop, completion, and window unload. Preparation,
+rehearsal, and recovery are distinct sensing contexts. Live samples must be
+stable, belong to the current phase, meet minimum analysis windows, and be no
+more than 10 seconds old. Breathing samples are accepted only with a recent
+stable not-talking observation.
 
 ## SmartSpectra boundary
 
@@ -82,7 +85,8 @@ The user may opt in to saving a session summary. SQL.js serializes summaries to
 development fallback uses IndexedDB. The summary contains session type/date,
 duration, objective, completion, valid baseline/recovery values and sample
 metadata, talking intervals/counts, pause count, blink aggregate, and a
-practice suggestion. Raw frames, raw landmark history, API keys, and
+practice suggestion, plus whether camera sensing was used. Older summaries
+without that optional marker remain reviewable. Raw frames, raw landmark history, API keys, and
 high-frequency live samples are not persisted.
 
 Database IPC checks the trusted sender and limits the serialized payload to

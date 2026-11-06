@@ -40,7 +40,8 @@ available. Use only actual stable samples after the applicable Poise stationary 
 pulse 12 seconds, breathing 30 seconds, and HRV 60 seconds. A minimum time elapsed does not
 guarantee that a valid reading will be emitted. The SDK validation status and actual sample
 metadata are authoritative; show guidance and omit unavailable values rather than inventing or
-zero-filling them.
+zero-filling them. Displayed live readings expire when their SDK timestamp is more than 10 seconds
+old or lies in the future relative to the application clock.
 
 Breathing is not considered a valid stationary comparison while the user is speaking. The
 relative arterial-pressure waveform is never a blood-pressure measurement. Talking detection is

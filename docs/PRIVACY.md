@@ -16,8 +16,8 @@ information, not legal advice.
 An opted-in summary can include the session type, date, practice duration,
 objective, completion, valid baseline/recovery sample values and available
 confidence/stability/timestamps, speaking intervals, pause count, blink
-aggregate, and a practice suggestion. Do not enter sensitive third-party or
-confidential information into an objective.
+aggregate, whether camera sensing was enabled, and a practice suggestion. Do
+not enter sensitive third-party or confidential information into an objective.
 
 ## Where summaries are stored
 

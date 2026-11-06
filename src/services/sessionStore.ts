@@ -8,6 +8,7 @@ export interface SessionDetails {
   recovery: Partial<Record<MetricName, SignalSample>>;
   talkingIntervals: TalkingInterval[];
   blinkCount: number;
+  cameraSensingUsed?: boolean;
 }
 
 export interface StoredSession {
@@ -44,6 +45,7 @@ const sessionDetailsSchema = z.object({
     z.object({ startedAt: z.number(), endedAt: z.number() }),
   ),
   blinkCount: z.number().int().nonnegative(),
+  cameraSensingUsed: z.boolean().optional(),
 });
 
 const databaseName = "poise-local";

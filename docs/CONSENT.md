@@ -12,9 +12,9 @@ sensing:
   memory for the practice and are not automatically saved.
 - The user can stop sensing at any time. Stopping ends the SDK session and
   releases the camera through the SDK lifecycle.
-- SmartSpectra must authenticate the user's API key. Poise disables optional
-  SDK telemetry; authentication and other required Presage service
-  communication still occur.
+- If the user chooses camera sensing, SmartSpectra must authenticate their API
+  key. Poise disables optional SDK telemetry; authentication and other
+  required Presage service communication still occur for that sensing session.
 - Saving a session summary is a separate opt-in choice. Saved summaries remain
   on this device and can be deleted in the app.
 - Feedback is informational rehearsal support, not medical assessment or
@@ -26,7 +26,9 @@ sensing:
 The camera consent checkbox is required before the “Enable camera and check
 in” action is enabled. OS-level camera permission is also required. Declining
 or leaving the checkbox unchecked must not start SmartSpectra or request camera
-access.
+access. Users may instead continue to a camera-free practice; that path does
+not start SmartSpectra or collect sensing data and keeps signal-dependent
+observations unavailable.
 
 The “Save this session summary locally” checkbox is independent, optional, and
 off by default. Users may practise without saving. Granting camera consent

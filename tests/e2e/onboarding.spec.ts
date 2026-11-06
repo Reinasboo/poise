@@ -62,6 +62,48 @@ test("privacy settings explain local data and telemetry behavior", async ({
   ).toBeVisible();
 });
 
+test("camera-free practice can be completed and its saved reflection reopened", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Prepare for a moment" }).click();
+  await page.getByLabel("Your personal objective").fill("Start with one clear idea");
+  await page.getByRole("button", { name: /Continue to camera consent/ }).click();
+  await page.getByLabel(
+    /Save this session summary locally so I can review it later/,
+  ).check();
+  await expect(page.getByLabel(
+    /I understand how camera sensing and session information are used/,
+  )).not.toBeChecked();
+  await expect(page.getByLabel("SmartSpectra API key")).toHaveValue("");
+  await page.getByRole("button", { name: "Continue without camera" }).click();
+
+  await expect(page.getByText(/Camera sensing is off/)).toBeVisible();
+  await expect(page.getByLabel("Warm-up mode")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Guided" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".breath-orb")).toHaveCSS("transition-duration", "0s");
+  await expect(page.getByText("Camera active")).toHaveCount(0);
+  await page.getByRole("button", { name: "Enter the Stage" }).click();
+  await expect(page.getByRole("heading", { name: "Take your time." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Camera off" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Finish rehearsal" }).click();
+  await page.getByRole("button", { name: "Continue to reflection" }).click();
+  await page.getByRole("button", { name: "Save locally and finish" }).click();
+  await expect(page.getByRole("heading", { name: "You showed up for yourself." })).toBeVisible();
+  await page.getByRole("button", { name: "My sessions" }).click();
+
+  await page.getByRole("button", { name: "Review" }).click();
+  await expect(
+    page.getByRole("heading", { name: "A closer look at your session." }),
+  ).toBeVisible();
+  await expect(page.getByText("Start with one clear idea")).toBeVisible();
+  await expect(page.getByText("Camera sensing was off; this session has no live measurements.")).toBeVisible();
+  await expect(page.getByText("No valid compatible baseline and recovery pair was saved.")).toHaveCount(3);
+});
+
 test("local SQLite summaries survive reload and can be deleted", async ({
   page,
 }) => {
@@ -88,6 +130,7 @@ test("local SQLite summaries survive reload and can be deleted", async ({
       recovery: {},
       talkingIntervals: [{ startedAt: 1_000, endedAt: 5_000 }],
       blinkCount: 2,
+      cameraSensingUsed: true,
     },
     speakingIntervals: 1,
     pauses: 1,
@@ -102,6 +145,7 @@ test("local SQLite summaries survive reload and can be deleted", async ({
   expect(saved).toHaveLength(1);
   expect(saved[0]?.id).toBe(summary.id);
   expect(saved[0]?.details.baseline.pulse?.confidence).toBe(83);
+  expect(saved[0]?.details.cameraSensingUsed).toBe(true);
 
   await page.reload();
   const persisted = await page.evaluate(async () => {
@@ -119,6 +163,23 @@ test("local SQLite summaries survive reload and can be deleted", async ({
     return sessionStore.list();
   });
   expect(deleted).toEqual([]);
+
+  const legacySession = {
+    ...summary,
+    id: "legacy-session-without-sensing-marker",
+    details: {
+      baseline: {},
+      recovery: {},
+      talkingIntervals: [],
+      blinkCount: 0,
+    },
+  };
+  const legacyDetails = await page.evaluate(async (entry) => {
+    const { sessionStore } = await import("/src/services/sessionStore.ts");
+    await sessionStore.save(entry);
+    return (await sessionStore.list()).find((item) => item.id === entry.id)?.details;
+  }, legacySession);
+  expect(legacyDetails?.cameraSensingUsed).toBeUndefined();
 
   await page.evaluate(async (entry) => {
     const { sessionStore } = await import("/src/services/sessionStore.ts");

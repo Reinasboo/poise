@@ -20,9 +20,10 @@ npm run dist:win
   comparisons, and grounded suggestions.
 - `npm run test:e2e` runs Playwright in Chromium against the Vite development
   renderer. The tests cover welcome, scenario setup, consent disclosures, the
-  independent opt-in save checkbox, privacy navigation, and SQL.js summary
-  persistence/deletion through the browser's IndexedDB fallback. They do not
-  inject measurements or claim to verify live sensing.
+  independent opt-in save checkbox, camera-free full rehearsal/reflection,
+  reduced-motion behavior, reopening a saved reflection, privacy navigation,
+  and SQL.js summary persistence/deletion through the browser's IndexedDB
+  fallback. They do not inject measurements or claim to verify live sensing.
 - `npm run build` type-checks TypeScript, builds the renderer, and bundles the
   secure preload.
 - `npm audit` should report zero known dependency vulnerabilities.
@@ -30,7 +31,7 @@ npm run dist:win
   an installer.
 - `npm run dist:win` creates the unsigned Windows x64 NSIS installer.
 
-The current unit suite contains eight passing tests, and all three Playwright
+The current unit suite contains nine passing tests, and all four Playwright
 browser tests pass. The production build and Windows unpacked app and NSIS
 installer have built successfully. The packaged Electron window, renderer
 startup, SQL.js initialization, and storage IPC read/write/delete cycle have

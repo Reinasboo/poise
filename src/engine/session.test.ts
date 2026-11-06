@@ -3,6 +3,7 @@ import {
   canTransition,
   compareMeasurements,
   isStationaryMetricUsable,
+  maximumSampleAgeMs,
   minimumWindowsMs,
   nextPracticeSuggestion,
   transition,
@@ -12,6 +13,7 @@ import {
 describe("session state machine", () => {
   it("allows only explicitly defined transitions", () => {
     expect(canTransition("IDLE", "CONSENT")).toBe(true);
+    expect(canTransition("CONSENT", "WARMUP")).toBe(true);
     expect(canTransition("IDLE", "REHEARSAL")).toBe(false);
     expect(() => transition("IDLE", "REHEARSAL")).toThrow(
       "Invalid session transition: IDLE -> REHEARSAL",
@@ -23,7 +25,7 @@ describe("signal quality", () => {
   const sample: SignalSample = {
     metric: "breathing",
     value: 14,
-    timestampUs: 1_000_000,
+    timestampUs: 30_000_000,
     confidence: 72,
     stable: true,
   };
@@ -68,6 +70,24 @@ describe("signal quality", () => {
         "preparation",
         0,
         60_000,
+      ),
+    ).toBe(false);
+  });
+
+  it("rejects stale and future-dated samples", () => {
+    expect(maximumSampleAgeMs).toBe(10_000);
+    expect(
+      isStationaryMetricUsable(sample, "preparation", 0, 40_000),
+    ).toBe(true);
+    expect(
+      isStationaryMetricUsable(sample, "preparation", 0, 40_001),
+    ).toBe(false);
+    expect(
+      isStationaryMetricUsable(
+        { ...sample, timestampUs: 40_001_000 },
+        "preparation",
+        0,
+        40_000,
       ),
     ).toBe(false);
   });

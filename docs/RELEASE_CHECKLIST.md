@@ -10,7 +10,9 @@ real SmartSpectra account/device, public sharing, or a competition account.
 - [x] Latest installer installed into a temporary location, launched, and
       uninstalled successfully.
 - [x] Production build and secure preload compile.
-- [x] Unit, browser workflow, and browser persistence/deletion tests pass.
+- [x] Unit tests cover signal freshness; browser tests cover camera-free
+      practice, saved reflection review, reduced motion, and local
+      persistence/deletion.
 - [x] `npm audit` reports no known vulnerabilities.
 - [x] Packaged Electron startup and storage IPC read/write/delete smoke check.
 - [x] Product, architecture, integration, privacy, consent, and testing docs.

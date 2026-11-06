@@ -25,8 +25,8 @@ practise in my own words, and reflect on what I actually did.
 1. **Choose a practice.** Select an interview, presentation, pitch, or camera
    session, a personal objective, and a duration.
 2. **Choose whether to sense.** Review camera, data, service-communication, and
-   non-medical disclosures. Explicitly enable camera use; local saving is
-   separate and optional.
+   non-medical disclosures. Explicitly enable camera use or continue without
+   sensing; local saving is separate and optional.
 3. **Check in.** Offer calm framing and lighting guidance. Show only stable,
    sufficiently current SDK measurements with their timestamps and available
    confidence information. Missing signals stay unavailable.
@@ -49,7 +49,8 @@ practise in my own words, and reflect on what I actually did.
 - **Non-judgmental:** No red-alert biometric dashboard, population norm, or
   claim about a person's inner state.
 - **User control:** Consent precedes sensing; camera stop is always available;
-  saving is opt-in; local data is deletable.
+  camera-free practice is available; saving is opt-in; local data is deletable
+  and saved summaries can be reviewed.
 - **Practical:** Every measurement or animation supports a rehearsal action.
 - **Private by default:** No account, cloud database, automatic upload, or
   third-party AI in this MVP.
@@ -78,6 +79,8 @@ pressure measurement and is not part of the Poise experience.
   invalid signals remain clearly unavailable.
 - A rehearsal can complete and produce a grounded reflection without
   transcription or unsupported personal-state claims.
+- A user can complete practice without enabling camera sensing or providing an
+  API key; sensing-dependent observations remain unavailable.
 - Saving, review, and deletion are user-controlled and local.
 - A fresh Windows package starts, requests camera access only after consent,
   and releases sensing resources when stopped.

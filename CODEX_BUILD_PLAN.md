@@ -105,7 +105,7 @@ Build the complete journey below, prioritizing the interview workflow and sharin
 #### B. Consent and camera setup
 
 - Explain why the camera is needed; which signals may be measured; how the signals are used; whether session information is saved; how sensing can be stopped; and how data can be deleted.
-- Require the user to explicitly enable camera access.
+- Let the user explicitly enable camera access or continue to camera-free practice without starting the SDK.
 - Show preview, face positioning, framing and lighting guidance; advise comfortable posture and stillness during physiological check-in.
 - Show camera-active state persistently and provide an immediately available stop-sensing control.
 - Show measurement quality/availability and SDK-sourced validation guidance (face not detected, poor lighting, camera instability, insufficient confidence, and other actual supported validation hints).
@@ -116,6 +116,7 @@ Build the complete journey below, prioritizing the interview workflow and sharin
 - Wait for valid, sufficiently confident and stable measurements; show progress/availability, not invented or premature values.
 - Establish a **session-specific personal baseline**, not a medical normal range or population comparison.
 - Respect minimum documented analysis windows: pulse **12 seconds**, breathing **30 seconds**, HRV **60 seconds**. These are minimums, not guarantees; require SDK confidence/stability and all actual quality conditions too.
+- Expire displayed live readings when their sample timestamp is more than 10 seconds old or is in the future.
 - Never interpret missing/invalid data as zero. Never use an unreliable reading to drive adaptive interactions.
 
 #### D. Responsive Warm-up
@@ -147,6 +148,7 @@ Create an immersive, polished breathing experience whose animation has a real fu
 - If a required value is unavailable or conditions are incompatible, explain why and omit the comparison; never fabricate a value or comparison.
 - Provide next-practice suggestions based only on observed practice activity or the user’s selected goal (for example, shorter opening or allowing more time for a first pause), never fabricated emotional interpretations.
 - Allow the user to repeat a session and compare practice patterns across saved sessions without diagnosing or implying medical change.
+- Let users reopen a saved summary to review its objective, valid measurement metadata/comparisons, practice observations, timeline, and next-practice suggestion.
 
 #### G. History, progress, and settings
 
@@ -233,7 +235,7 @@ Keep the SDK behind a typed adapter so the engine and UI can be tested independe
 
 - **Vitest unit tests:** signal normalization; timestamps/metric identity; confidence/stability and minimum-window gating; missing/invalid values; state machine transitions and cleanup; adaptive rules; comparison compatibility; recommendation rules; local persistence/deletion.
 - Use clearly labelled synthetic fixtures for engine tests only. Strictly separate fixtures from live SDK measurements; never let fixture values enter a live UI state or be labelled as real output.
-- **Playwright workflow tests:** welcome → consent → setup → check-in → warm-up → rehearsal → recovery → reflection; permission-denied and unavailable-measurement paths; stop sensing; save/delete session; responsive desktop window sizes.
+- **Playwright workflow tests:** welcome → consent → setup → camera-free warm-up → rehearsal → recovery → reflection; saved-summary review; consent and opt-in saving; stop sensing; save/delete session; reduced-motion behavior and responsive desktop window sizes.
 - Test boundary conditions and errors without silently treating failure as success.
 
 ### Required manual/device scenarios
@@ -293,11 +295,13 @@ The brief’s intended competition window is November 6–22, 2026. Preserve the
 - [ ] Uses the official SmartSpectra SDK and documented secure Electron integration.
 - [ ] Shows genuine live measurements with timestamps and validation/confidence; no fabricated live values.
 - [ ] Enforces analysis windows, measurement quality, and phase/capture conditions; never substitutes zero or simulated data.
+- [ ] Expires displayed measurements when their timestamps are stale or future-dated; keeps saved historical readings separately reviewable.
 - [ ] Valid live breathing drives the Warm-up; Observe and Guided modes clearly distinguish measured response from selected target.
 - [ ] Complete interview workflow works; presentation and pitch scenarios use the same rehearsal engine.
 - [ ] Real talking events update speaking intervals/timeline; no transcript or unsupported emotional/personality claims.
 - [ ] Recovery, reflection, and comparisons use only valid compatible measurements and omit unavailable results transparently.
 - [ ] Local summaries persist; user can delete one session or all local Poise data.
+- [ ] User can reopen an opted-in summary and review its objective, valid readings and metadata, practice observations, and suggestion.
 - [ ] Camera stops/releases on stop, cancellation, errors, phase transitions as appropriate, and app shutdown.
 - [ ] Consent, telemetry, storage, external service, and privacy statements accurately match implementation.
 - [ ] No raw video storage, no automatic cloud upload, no MVP account or AI integration, no credentials committed.

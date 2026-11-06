@@ -3,7 +3,7 @@
 **Show up as yourself. At your best.**
 
 Poise is a Windows-first rehearsal companion for interviews, presentations,
-pitches, and speaking on camera. It combines an optional camera-based
+pitches, and speaking on camera. It combines optional camera-based
 SmartSpectra check-in, a responsive warm-up, practical rehearsal, and a
 reflection based only on supported measurements and observable practice.
 
@@ -22,7 +22,8 @@ simulated measurements.
 ## Product journey
 
 - Choose a practice scenario, objective, and duration.
-- Review camera and data disclosures; explicitly consent to sensing.
+- Review camera and data disclosures; explicitly consent to sensing or choose
+  camera-free practice.
 - Optionally save a session summary locally (off by default).
 - See only stable, current SmartSpectra readings; missing signals remain
   unavailable, not zero.
@@ -30,18 +31,19 @@ simulated measurements.
   separately labelled, user-selected target.
 - Rehearse with a local interview prompt or a user-entered topic; Poise shows
   talking activity and intervals, not a transcript.
-- Review a grounded reflection and, if opted in, local session history.
+- Review a grounded reflection and, if opted in, reopen it from local session
+  history.
 
 ## Requirements
 
 - Windows x64 and a supported webcam
 - Node.js 22.12+ recommended (the Electron Builder toolchain requires it)
-- A valid SmartSpectra API key and network access for SDK authentication and
-  required Presage service communication
+- For camera sensing only: a valid SmartSpectra API key and network access for
+  SDK authentication and required Presage service communication
 
-The SDK requires a key even though Poise disables optional SDK telemetry.
-Telemetry opt-out does not make SDK authentication/service communication
-offline.
+Camera-free practice does not require the SDK or an API key. Camera sensing
+requires a key even though Poise disables optional SDK telemetry. Telemetry
+opt-out does not make SDK authentication/service communication offline.
 
 ## Run locally
 
@@ -50,11 +52,12 @@ npm install
 npm run dev
 ```
 
-In the app, enter your API key in the password field when starting a session.
-The key is needed by the official renderer SDK, held in memory during the
-session, and not persisted or logged by Poise. Do not put it in a `VITE_*`
-variable, source file, screenshot, or chat. `.env.example` contains no secret
-and explains why runtime entry is used.
+Choose camera-free practice without a key, or enter your API key in the
+password field if you opt in to camera sensing. The key is needed by the
+official renderer SDK, held in memory during the sensing session, and not
+persisted or logged by Poise. Do not put it in a `VITE_*` variable, source
+file, screenshot, or chat. `.env.example` contains no secret and explains why
+runtime entry is used.
 
 For Codex, install the official SmartSpectra skill from its source repository:
 

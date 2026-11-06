@@ -36,7 +36,7 @@ export interface SessionDraft {
 
 const transitions: Record<SessionPhase, readonly SessionPhase[]> = {
   IDLE: ["CONSENT"],
-  CONSENT: ["CAMERA_SETUP", "IDLE", "ERROR"],
+  CONSENT: ["CAMERA_SETUP", "WARMUP", "IDLE", "ERROR"],
   CAMERA_SETUP: ["CHECK_IN", "CONSENT", "IDLE", "ERROR"],
   CHECK_IN: ["WARMUP", "IDLE", "ERROR"],
   WARMUP: ["REHEARSAL", "IDLE", "ERROR"],
@@ -64,6 +64,8 @@ export const minimumWindowsMs: Record<MetricName, number> = {
   hrv: 60_000,
 };
 
+export const maximumSampleAgeMs = 10_000;
+
 export type SensingPhase = "preparation" | "rehearsal" | "recovery";
 
 export function isStationaryMetricUsable(
@@ -76,7 +78,15 @@ export function isStationaryMetricUsable(
   if (!Number.isFinite(sample.value) || !Number.isFinite(sample.timestampUs)) {
     return false;
   }
-  if (sample.timestampUs < phaseStartedAt * 1_000) return false;
+  const sampleTimeMs = sample.timestampUs / 1_000;
+  const sampleAgeMs = now - sampleTimeMs;
+  if (
+    sampleTimeMs < phaseStartedAt ||
+    sampleAgeMs < 0 ||
+    sampleAgeMs > maximumSampleAgeMs
+  ) {
+    return false;
+  }
   if (sample.stable !== true) return false;
   if (
     sample.confidence !== undefined &&
