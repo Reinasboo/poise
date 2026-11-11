@@ -941,11 +941,26 @@ function App() {
             )}
           </div>
         </div>
-        <div aria-hidden="true" className="hero-orbit">
-          <div className="orbit-ring" />
-          <div className="orbit-ring" />
-          <div className="orbit-ring" />
-          <div className="orbit-core" />
+        <div aria-hidden="true" className="hero-practice-card">
+          <div className="practice-card-topline">
+            <span>YOUR PRACTICE</span>
+            <span className="practice-card-status"><i /> Private & local</span>
+          </div>
+          <div className="practice-card-prompt">
+            <small>Today’s intention</small>
+            <strong>Speak clearly, without rushing.</strong>
+          </div>
+          <div className="practice-card-path">
+            <div className="practice-path-item is-ready">
+              <span>01</span><p>Check in<small>Notice your starting point</small></p>
+            </div>
+            <div className="practice-path-item">
+              <span>02</span><p>Find your rhythm<small>Warm up at your pace</small></p>
+            </div>
+            <div className="practice-path-item">
+              <span>03</span><p>Take the stage<small>Practise, then reflect</small></p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -2234,14 +2249,19 @@ function App() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <aside aria-label="Main navigation" className="sidebar">
         <div className="brand">
           <span aria-hidden="true" className="brand-mark">P</span>
-          <span className="brand-name">POISE</span>
+          <span>
+            <span className="brand-name">POISE</span>
+            <span className="brand-subtitle">Practice with presence</span>
+          </span>
         </div>
         <div className="nav-label">POISE</div>
         <nav className="nav-group">
           <button
+            aria-current={screen === "home" ? "page" : undefined}
             className={`nav-item ${screen === "home" ? "active" : ""}`}
             onClick={() => void navigate("home")}
           >
@@ -2262,12 +2282,14 @@ function App() {
             <Icon name="play" /> <span>New session</span>
           </button>
           <button
+            aria-current={screen === "history" ? "page" : undefined}
             className={`nav-item ${screen === "history" ? "active" : ""}`}
             onClick={() => void navigate("history")}
           >
             <Icon name="sessions" /> <span>My sessions</span>
           </button>
           <button
+            aria-current={screen === "progress" ? "page" : undefined}
             className={`nav-item ${screen === "progress" ? "active" : ""}`}
             onClick={() => void navigate("progress")}
           >
@@ -2277,12 +2299,14 @@ function App() {
         <div className="nav-label">SETTINGS</div>
         <nav className="nav-group">
           <button
+            aria-current={screen === "settings" ? "page" : undefined}
             className={`nav-item ${screen === "settings" ? "active" : ""}`}
             onClick={() => void navigate("settings")}
           >
             <Icon name="settings" /> <span>Privacy & data</span>
           </button>
           <button
+            aria-current={screen === "about" ? "page" : undefined}
             className={`nav-item ${screen === "about" ? "active" : ""}`}
             onClick={() => void navigate("about")}
           >
@@ -2295,7 +2319,7 @@ function App() {
           Informational feedback, not medical advice.
         </div>
       </aside>
-      <main className="main-area">
+      <main className="main-area" id="main-content">
         <header className="topbar">
           <div className="breadcrumbs">POISE <span aria-hidden="true">/</span> {currentTitle[screen]}</div>
           <div aria-live="polite" className="topbar-right">
