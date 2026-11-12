@@ -128,11 +128,11 @@ default Electron icon, so Windows may display a publisher warning.
 
 ## Website and downloads
 
-The static download page is in [`website/`](./website/). Deploy it to Cloudflare
-Pages with `website` as the build output directory and no build command. The
-Windows installer is published as a GitHub Release asset; pushing a `v*` tag
-builds and attaches the installer automatically. See
-[Website and Windows installer](./docs/DEPLOYMENT.md) for setup details.
+The static download page is deployed at <https://poise-3er.pages.dev/> from
+[`website/`](./website/). The Windows installer is published as a GitHub
+Release asset. Tag-triggered builds use GitHub Actions; if runners are
+unavailable, build and upload the installer locally. See
+[Website and Windows installer](./docs/DEPLOYMENT.md) for deployment details.
 
 ## Tests and verification
 
