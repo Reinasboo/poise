@@ -43,6 +43,12 @@ metadata are authoritative; show guidance and omit unavailable values rather tha
 zero-filling them. Displayed live readings expire when their SDK timestamp is more than 10 seconds
 old or lies in the future relative to the application clock.
 
+An individual metrics payload that cannot be decoded is reported in the session
+diagnostics without treating it as an SDK terminal error. Sensing continues and
+the warning clears when a subsequent payload decodes successfully. Only an
+explicit non-retryable SDK error or terminal processing status triggers SDK
+cleanup.
+
 Breathing is not considered a valid stationary comparison while the user is speaking. The
 relative arterial-pressure waveform is never a blood-pressure measurement. Talking detection is
 activity only, not a transcript or semantic/emotional assessment.

@@ -145,7 +145,8 @@ npm audit
 
 The current automated suite includes:
 
-- 9 passing unit tests for the session engine and SmartSpectra adapter
+- 10 passing unit tests for the session engine and SmartSpectra adapter,
+  including recovery after an undecodable metrics event without stopping sensing
 - 6 passing Playwright flows covering setup, consent, camera-free completion,
   saved-reflection reopening, reduced motion, preference validation and
   persistence, privacy navigation, and SQLite summary persistence/deletion

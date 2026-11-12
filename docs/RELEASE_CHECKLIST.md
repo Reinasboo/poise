@@ -13,6 +13,9 @@ real SmartSpectra account/device, public sharing, or a competition account.
 - [x] Unit tests cover signal freshness; browser tests cover camera-free
       practice, saved reflection review, reduced motion, and local
       persistence/deletion.
+- [x] SmartSpectra metrics decode failures no longer shut down an otherwise
+      active sensing session; regression-tested recovery on the next valid
+      payload.
 - [x] Non-sensitive scenario, duration, and guided-pace preferences persist
       locally and invalid saved values can be reset.
 - [x] `npm audit` reports no known vulnerabilities.

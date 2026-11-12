@@ -1,5 +1,73 @@
-import { describe, expect, it } from "vitest";
-import { normalizeSmartSpectraMetrics } from "./client";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({
+  instances: [] as Array<{
+    emit(event: string, ...args: unknown[]): void;
+    stopCalls: number;
+    destroyCalls: number;
+  }>,
+  decodeMetrics: vi.fn(),
+}));
+
+vi.mock("@smartspectra/node-sdk/renderer", () => {
+  class MockSmartSpectraSDK {
+    private readonly handlers = new Map<string, (...args: unknown[]) => void>();
+    stopCalls = 0;
+    destroyCalls = 0;
+
+    constructor() {
+      mocks.instances.push(this);
+    }
+
+    on(event: string, callback: (...args: unknown[]) => void) {
+      this.handlers.set(event, callback);
+      return this;
+    }
+
+    emit(event: string, ...args: unknown[]) {
+      this.handlers.get(event)?.(...args);
+    }
+
+    async start() {}
+
+    async stop() {
+      this.stopCalls += 1;
+    }
+
+    async destroy() {
+      this.destroyCalls += 1;
+    }
+  }
+
+  return {
+    SmartSpectraSDK: MockSmartSpectraSDK,
+    MetricType: {
+      CHEST_BREATHING: 1,
+      ABDOMEN_BREATHING: 2,
+      BREATHING_RATE: 3,
+      PULSE_RATE: 4,
+      HRV: 5,
+      FACE_LANDMARKS: 6,
+      BLINKING: 7,
+      TALKING: 8,
+    },
+    ProcessingStatus: {},
+    ValidationCode: {},
+  };
+});
+
+vi.mock("@smartspectra/node-sdk/messages", () => ({
+  decodeMetrics: mocks.decodeMetrics,
+}));
+
+import { normalizeSmartSpectraMetrics, SmartSpectraClient } from "./client";
+
+beforeEach(() => {
+  mocks.instances.length = 0;
+  mocks.decodeMetrics.mockReset().mockImplementation(() => {
+    throw new Error("Malformed metrics payload.");
+  });
+});
 
 describe("SmartSpectra payload normalization", () => {
   it("preserves supported sample metadata and observable detection state", () => {
@@ -114,5 +182,48 @@ describe("SmartSpectra payload normalization", () => {
     expect(() => normalizeSmartSpectraMetrics(null, 1)).toThrow(
       "SmartSpectra returned an unreadable metrics payload.",
     );
+  });
+
+  it("recovers from a malformed metrics payload without stopping camera sensing", async () => {
+    const client = new SmartSpectraClient();
+    const onMetricsError = vi.fn();
+    const onMetrics = vi.fn();
+    const onError = vi.fn();
+    mocks.decodeMetrics
+      .mockImplementationOnce(() => {
+        throw new Error("Malformed metrics payload.");
+      })
+      .mockImplementationOnce(() => ({
+        breathing: {
+          rate: [{
+            value: 14.5,
+            confidence: 83,
+            stable: true,
+            timestamp: 1_800_000_000_000_000,
+          }],
+        },
+      }));
+
+    await client.start("test-api-key", {
+      onStream: vi.fn(),
+      onMetrics,
+      onMetricsError,
+      onProcessingStatus: vi.fn(),
+      onValidation: vi.fn(),
+      onError,
+    });
+
+    const sdk = mocks.instances[0];
+    sdk.emit("metrics", new Uint8Array(), 1);
+    sdk.emit("metrics", new Uint8Array(), 1_800_000_000_001_000);
+
+    expect(onMetricsError).toHaveBeenCalledWith(
+      "Could not decode SmartSpectra measurements: Malformed metrics payload.",
+    );
+    expect(onMetrics).toHaveBeenCalledOnce();
+    expect(onMetrics.mock.calls[0][0].samples[0].value).toBe(14.5);
+    expect(onError).not.toHaveBeenCalled();
+    expect(sdk.stopCalls).toBe(0);
+    expect(sdk.destroyCalls).toBe(0);
   });
 });

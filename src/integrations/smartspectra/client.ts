@@ -20,6 +20,7 @@ export interface LiveMetrics {
 export interface SmartSpectraCallbacks {
   onStream(stream: MediaStream): void;
   onMetrics(metrics: LiveMetrics): void;
+  onMetricsError(message: string): void;
   onProcessingStatus(status: string): void;
   onValidation(hint: string, timestampUs: number): void;
   onError(message: string, retryable: boolean): void;
@@ -202,9 +203,8 @@ export class SmartSpectraClient implements SmartSpectraController {
           normalizeSmartSpectraMetrics(decodeMetrics(buffer), timestampUs),
         );
       } catch (error) {
-        callbacks.onError(
+        callbacks.onMetricsError(
           `Could not decode SmartSpectra measurements: ${errorText(error)}`,
-          false,
         );
       }
     });

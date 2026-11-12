@@ -224,6 +224,7 @@ function App() {
   const [processingStatus, setProcessingStatus] = useState("Not started");
   const [diagnostics, setDiagnostics] = useState<DiagnosticEntry[]>([]);
   const [sdkError, setSdkError] = useState("");
+  const [metricsDecodeError, setMetricsDecodeError] = useState("");
   const [storageError, setStorageError] = useState("");
   const [preferencesError, setPreferencesError] = useState("");
   const [saveError, setSaveError] = useState("");
@@ -361,6 +362,7 @@ function App() {
     lastTalkingTimestampRef.current = 0;
     lastBlinkTimestampRef.current = 0;
     setSdkError("");
+    setMetricsDecodeError("");
     setSaveError("");
     setDiagnostics([]);
     lastMetricsDiagnosticAtRef.current = 0;
@@ -506,11 +508,13 @@ function App() {
     setIsBusy(true);
     setSessionUsesCamera(true);
     setSdkError("");
+    setMetricsDecodeError("");
     setDiagnostics([]);
     lastMetricsDiagnosticAtRef.current = 0;
     recordDiagnostic("session", "Sensing start requested; API key not recorded.");
     setSessionPhase("CAMERA_SETUP");
     const stopAfterSdkFailure = (message: string) => {
+      setMetricsDecodeError("");
       setSessionPhase("ERROR");
       recordDiagnostic("cleanup", "Fatal SDK state; stopping and destroying the SDK.");
       void smartSpectraClient.stop().then(
@@ -519,6 +523,7 @@ function App() {
           setStream(null);
           setApiKey("");
           setSessionUsesCamera(false);
+          setMetricsDecodeError("");
           setProcessingStatus("Stopped");
           recordDiagnostic("cleanup", "SDK stop and destroy completed.");
         },
@@ -545,6 +550,7 @@ function App() {
         },
         onMetrics: (metrics) => {
           if (attempt !== sensingAttemptRef.current) return;
+          setMetricsDecodeError("");
           handleMetrics(metrics);
           const receivedAt = Date.now();
           if (receivedAt - lastMetricsDiagnosticAtRef.current < 5_000) return;
@@ -557,6 +563,12 @@ function App() {
             "metrics",
             `Decoded SDK metrics event: ${received}; face ${metrics.faceVisible === null ? "unknown" : metrics.faceVisible ? "visible" : "not visible"}.`,
           );
+        },
+        onMetricsError: (message) => {
+          if (attempt !== sensingAttemptRef.current) return;
+          const safeMessage = redactSensitiveText(message, apiKey);
+          setMetricsDecodeError(safeMessage);
+          recordDiagnostic("metrics decode error", safeMessage);
         },
         onProcessingStatus: (status) => {
           if (attempt !== sensingAttemptRef.current) return;
@@ -644,6 +656,7 @@ function App() {
       setStream(null);
       setApiKey("");
       setSessionUsesCamera(false);
+      setMetricsDecodeError("");
       setProcessingStatus("Stopped");
       setIsTalking(false);
       talkingStateRef.current = false;
@@ -730,6 +743,7 @@ function App() {
       setStream(null);
       setApiKey("");
       setSessionUsesCamera(false);
+      setMetricsDecodeError("");
       setProcessingStatus("Stopped");
       setSessionPhase("REFLECTION");
     } catch (error) {
@@ -1851,6 +1865,12 @@ function App() {
             )}
           </ol>
         </details>
+      )}
+      {metricsDecodeError && (
+        <div className="notice error" role="status" style={{ marginBottom: 16 }}>
+          {metricsDecodeError} Camera sensing remains active; waiting for the
+          next measurement.
+        </div>
       )}
       <AnimatePresence mode="wait">
         <motion.section
