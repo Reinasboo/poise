@@ -61,6 +61,7 @@
     ],
     "win": {
       "target": "nsis",
+      "artifactName": "Poise-Setup-win-x64.${ext}",
       "extraResources": [
         {
           "from": "node_modules/@smartspectra/node-sdk-win32-${arch}/",

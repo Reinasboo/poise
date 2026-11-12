@@ -126,6 +126,14 @@ The unpacked application is written to `dist/win-unpacked`; installer output
 is written beneath `dist/`. The current package is unsigned and uses the
 default Electron icon, so Windows may display a publisher warning.
 
+## Website and downloads
+
+The static download page is in [`website/`](./website/). Deploy it to Cloudflare
+Pages with `website` as the build output directory and no build command. The
+Windows installer is published as a GitHub Release asset; pushing a `v*` tag
+builds and attaches the installer automatically. See
+[Website and Windows installer](./docs/DEPLOYMENT.md) for setup details.
+
 ## Tests and verification
 
 ```bash
